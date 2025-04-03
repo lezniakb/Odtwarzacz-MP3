@@ -16,3 +16,4 @@
 
 ### Additional notes
 - the project was developed using **MCUXpresso IDE**
+- current main.c is located in mmc_fat folder
