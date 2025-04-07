@@ -207,8 +207,6 @@ int main (void) {
     /* uwaga: działająca karta SD to niebieska 128, sformatowana do FAT, najniższy rozmiar alokacji bloku */
     
     /* wyczysc ekran OLED, oraz wstaw komunikat swiadczacy o poprawnym uruchomieniu ekranu*/
-    /* Moraw powiedzial zeby nigdy przenigdy nie robic clearScreen bo sie wszystko pierdoli */
-    /* (dostalismy opierdol) */
     oled_clearScreen(OLED_COLOR_WHITE);
     oled_putString(1, 1, (uint8_t*)"OLED ON", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 
@@ -295,12 +293,8 @@ int main (void) {
 
     light_enable();
 
-//    oled_clearScreen(OLED_COLOR_BLACK);
-
-//    oled_putString(1,1,  (uint8_t*)"test ", OLED_COLOR_WHITE, OLED_COLOR_BLACK);
-
     /* NOWOŚĆ (eksperymentalne): uzywanie przycisku do wlaczania/wylaczania OLEDa (funkcjonalnosc 1)*/
-    /* jeszcze nie testowane. W razie watpliwosci: wyjebac z kodu.*/
+    /* jeszcze nie testowane. */
 
     /* Pętla główna z obsługą przycisku dla przełączania OLED */
     uint8_t prevButtonState = 1;  // Zakładamy, że przycisk w spoczynku jest w stanie HIGH (nie naciśnięty)
