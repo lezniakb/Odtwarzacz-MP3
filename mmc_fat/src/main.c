@@ -152,17 +152,27 @@ static void init_adc(void)
 	ADC_ChannelCmd(LPC_ADC,ADC_CHANNEL_0,ENABLE);
 
 }
+/* zobaczymy potem
+void button_init(void) {
+    PINSEL_CFG_Type PinCfg;
 
-static void button_init(void) {
-    /* konfiguruje piny dla przycisku do sterowania wyswietlaczem OLED (On/Off) 
-    nacisniecie przycisku daje sygnal LOW, przycisk w spoczynku daje sygnal HIGH*/
-    PinCfg.Portnum = 0;
-    PinCfg.Pinnum = 15;
-    PinCfg.Funcnum = 0;   // ustawienie pinu jako GPIO
+    // Konfiguracja pinu P0.4 jako GPIO:
+    // - Port 0, Pin 4
+    // - Funkcja 0 - czyli GPIO (domyślna)
+    // - Pinmode ustawiony na 0, co zwykle oznacza aktywację rezystora pull-up
+    // - OpenDrain wyłączony (0) - używamy trybu push-pull
+    PinCfg.Portnum   = 0;
+    PinCfg.Pinnum    = 4;
+    PinCfg.Funcnum   = 0;       // wybieramy funkcję GPIO
+    PinCfg.Pinmode   = 0;       // pull-up włączony (możesz zmienić w zależności od sprzętu)
+    PinCfg.OpenDrain = 0;
     PINSEL_ConfigPin(&PinCfg);
-    GPIO_SetDir(BUTTON_PORT, (1 << BUTTON_PIN), 0);  // ustawienie jako wejscie
-}
 
+    // Ustawienie kierunku pinu jako wejście
+    // Trzeci argument równy 0 oznacza konfigurację jako wejście
+    GPIO_SetDir(0, (1 << 4), 0);
+}
+*/
 
 int main (void) {
     /* ------ deklaracja podstawowych zmiennych ------ */
@@ -296,39 +306,22 @@ int main (void) {
     /* NOWOŚĆ (eksperymentalne): uzywanie przycisku do wlaczania/wylaczania OLEDa (funkcjonalnosc 1)*/
     /* jeszcze nie testowane. */
 
-    /* Pętla główna z obsługą przycisku dla przełączania OLED */
-    uint8_t prevButtonState = 1;  // Zakładamy, że przycisk w spoczynku jest w stanie HIGH (nie naciśnięty)
+    uint8_t btn1 = 0;
 
-    while (1)
-    {
-        // Odczyt bieżącego stanu pinu przycisku
-        uint8_t currentButtonState = (GPIO_ReadValue(BUTTON_PORT) >> BUTTON_PIN) & 0x01;
+    GPIO_SetDir(0, 1<<4, 0);
 
-        // Wykrycie opadającej krawędzi – moment nacisnięcia
-        if (prevButtonState == 1 && currentButtonState == 0)
-        {
-            Timer0_Wait(20);  // Opóźnienie dla debouncingu (20 ms)
+    btn1 = ((GPIO_ReadValue(0) >> 4) & 0x01);
 
-            // Ponowna weryfikacja, czy przycisk wciąż jest naciśnięty
-            currentButtonState = (GPIO_ReadValue(BUTTON_PORT) >> BUTTON_PIN) & 0x01;
-            if (currentButtonState == 0)
-            {
-                // Przełączenie flagi OLED
-                oledEnabled = !oledEnabled;
-
-                if (oledEnabled)
-                {
-                    oled_init();
-                    oled_clearScreen(OLED_COLOR_WHITE);
-                    oled_putString(1, 1, (uint8_t*)"OLED ON", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-                }
-                else
-                {
-                    oled_clearScreen(OLED_COLOR_BLACK);
-                }
-            }
+        if (btn1 == 0) {
+            oled_clearScreen(OLED_COLOR_WHITE);
+        	oled_putString(1, 9, (uint8_t*)"btn1 == 0", OLED_COLOR_WHITE, OLED_COLOR_BLACK);
+            Timer0_Wait(1000);
         }
-        prevButtonState = currentButtonState;
-    }
-}
+        else {
+        	sprintf(str, "btn1 = %d", btn1);
+            oled_clearScreen(OLED_COLOR_BLACK);
+        	oled_putString(1, 9, (uint8_t*)str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+            Timer0_Wait(1000);
+        }
+        Timer0_Wait(10);
 }
