@@ -9,9 +9,6 @@ RM := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include src/subdir.mk
--include subdir.mk
--include objects.mk
-
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(strip $(C_DEPS)),)
 -include $(C_DEPS)
@@ -20,23 +17,37 @@ endif
 
 -include ../makefile.defs
 
+OPTIONAL_TOOL_DEPS := \
+$(wildcard ../makefile.defs) \
+$(wildcard ../makefile.init) \
+$(wildcard ../makefile.targets) \
+
+
+BUILD_ARTIFACT_NAME := CMSISv1p30_LPC17xx
+BUILD_ARTIFACT_EXTENSION := a
+BUILD_ARTIFACT_PREFIX := lib
+BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
+
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: libCMSISv1p30_LPC17xx.a
+all:
+	+@$(MAKE) --no-print-directory main-build && $(MAKE) --no-print-directory post-build
+
+# Main-build Target
+main-build: libCMSISv1p30_LPC17xx.a
 
 # Tool invocations
-libCMSISv1p30_LPC17xx.a: $(OBJS) $(USER_OBJS)
+libCMSISv1p30_LPC17xx.a: $(OBJS) $(USER_OBJS) makefile $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU Archiver'
 	arm-none-eabi-ar -r  "libCMSISv1p30_LPC17xx.a" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
-	$(MAKE) --no-print-directory post-build
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(ARCHIVES)$(C_DEPS) libCMSISv1p30_LPC17xx.a
+	-$(RM) libCMSISv1p30_LPC17xx.a
 	-@echo ' '
 
 post-build:
@@ -44,7 +55,6 @@ post-build:
 	-arm-none-eabi-size libCMSISv1p30_LPC17xx.a ; # arm-none-eabi-objdump -h -S libCMSISv1p30_LPC17xx.a >libCMSISv1p30_LPC17xx.lss
 	-@echo ' '
 
-.PHONY: all clean dependents
-.SECONDARY: post-build
+.PHONY: all clean dependents main-build post-build
 
 -include ../makefile.targets

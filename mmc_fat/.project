@@ -6,6 +6,7 @@
 		<project>Lib_CMSISv1p30_LPC17xx</project>
 		<project>Lib_EaBaseBoard</project>
 		<project>Lib_FatFs_SD</project>
+		<project>Lib_Helix</project>
 		<project>Lib_MCU</project>
 	</projects>
 	<buildSpec>

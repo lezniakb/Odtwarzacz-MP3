@@ -1,0 +1,125 @@
+11:45:25 **** Incremental Build of configuration Debug for project Helix ****
+make -r -j16 all 
+Building file: ../src/libhelix/real/bitstream.c
+Building file: ../src/libhelix/real/buffers.c
+Building file: ../src/libhelix/real/dct32.c
+Invoking: MCU C Compiler
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/bitstream.d" -MT"src/libhelix/real/bitstream.o" -MT"src/libhelix/real/bitstream.d" -o "src/libhelix/real/bitstream.o" "../src/libhelix/real/bitstream.c"
+Building file: ../src/libhelix/real/dequant.c
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/buffers.d" -MT"src/libhelix/real/buffers.o" -MT"src/libhelix/real/buffers.d" -o "src/libhelix/real/buffers.o" "../src/libhelix/real/buffers.c"
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/dct32.d" -MT"src/libhelix/real/dct32.o" -MT"src/libhelix/real/dct32.d" -o "src/libhelix/real/dct32.o" "../src/libhelix/real/dct32.c"
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/dequant.d" -MT"src/libhelix/real/dequant.o" -MT"src/libhelix/real/dequant.d" -o "src/libhelix/real/dequant.o" "../src/libhelix/real/dequant.c"
+Building file: ../src/libhelix/real/dqchan.c
+Building file: ../src/libhelix/real/huffman.c
+Invoking: MCU C Compiler
+Building file: ../src/libhelix/real/hufftabs.c
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/dqchan.d" -MT"src/libhelix/real/dqchan.o" -MT"src/libhelix/real/dqchan.d" -o "src/libhelix/real/dqchan.o" "../src/libhelix/real/dqchan.c"
+Building file: ../src/libhelix/real/imdct.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/huffman.d" -MT"src/libhelix/real/huffman.o" -MT"src/libhelix/real/huffman.d" -o "src/libhelix/real/huffman.o" "../src/libhelix/real/huffman.c"
+Invoking: MCU C Compiler
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/hufftabs.d" -MT"src/libhelix/real/hufftabs.o" -MT"src/libhelix/real/hufftabs.d" -o "src/libhelix/real/hufftabs.o" "../src/libhelix/real/hufftabs.c"
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/imdct.d" -MT"src/libhelix/real/imdct.o" -MT"src/libhelix/real/imdct.d" -o "src/libhelix/real/imdct.o" "../src/libhelix/real/imdct.c"
+Building file: ../src/libhelix/real/polyphase.c
+Building file: ../src/libhelix/real/scalfact.c
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/polyphase.d" -MT"src/libhelix/real/polyphase.o" -MT"src/libhelix/real/polyphase.d" -o "src/libhelix/real/polyphase.o" "../src/libhelix/real/polyphase.c"
+Building file: ../src/libhelix/real/stproc.c
+Building file: ../src/libhelix/real/subband.c
+In file included from ../src/libhelix/real/buffers.c:51:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+Invoking: MCU C Compiler
+In file included from ../src/libhelix/real/bitstream.c:44:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+In file included from ../src/libhelix/real/dct32.c:45:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+In file included from ../src/libhelix/real/dequant.c:45:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+compilation terminated.
+compilation terminated.
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/scalfact.d" -MT"src/libhelix/real/scalfact.o" -MT"src/libhelix/real/scalfact.d" -o "src/libhelix/real/scalfact.o" "../src/libhelix/real/scalfact.c"
+Invoking: MCU C Compiler
+Building file: ../src/libhelix/real/trigtabs.c
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/buffers.o] Error 1
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/stproc.d" -MT"src/libhelix/real/stproc.o" -MT"src/libhelix/real/stproc.d" -o "src/libhelix/real/stproc.o" "../src/libhelix/real/stproc.c"
+make[1]: *** Waiting for unfinished jobs....
+Invoking: MCU C Compiler
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/dct32.o] Error 1
+make[1]: *** [src/libhelix/real/subdir.mk:55: src/libhelix/real/bitstream.o] Error 1
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/subband.d" -MT"src/libhelix/real/subband.o" -MT"src/libhelix/real/subband.d" -o "src/libhelix/real/subband.o" "../src/libhelix/real/subband.c"
+make[1]: *** [src/libhelix/real/subdir.mk:55: src/libhelix/real/dequant.o] Error 1
+Invoking: MCU C Compiler
+arm-none-eabi-gcc -DDEBUG -D__CODE_RED -DCORE_M3 -D__LPC17XX__ -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Helix\inc" -O0 -fno-common -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fdata-sections -fmerge-constants -fmacro-prefix-map="../src/libhelix/real/"= -mcpu=cortex-m3 -mthumb -fstack-usage -MMD -MP -MF"src/libhelix/real/trigtabs.d" -MT"src/libhelix/real/trigtabs.o" -MT"src/libhelix/real/trigtabs.d" -o "src/libhelix/real/trigtabs.o" "../src/libhelix/real/trigtabs.c"
+In file included from ../src/libhelix/real/dqchan.c:44:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+In file included from ../src/libhelix/real/huffman.c:44:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/dqchan.o] Error 1
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/huffman.o] Error 1
+In file included from ../src/libhelix/real/hufftabs.c:44:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+In file included from ../src/libhelix/real/imdct.c:45:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+compilation terminated.
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/imdct.o] Error 1
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/hufftabs.o] Error 1
+In file included from ../src/libhelix/real/polyphase.c:48:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+In file included from ../src/libhelix/real/subband.c:45:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+In file included from ../src/libhelix/real/scalfact.c:44:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/polyphase.o] Error 1
+In file included from ../src/libhelix/real/stproc.c:44:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/subband.o] Error 1
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/scalfact.o] Error 1
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/stproc.o] Error 1
+In file included from ../src/libhelix/real/trigtabs.c:46:
+../src/libhelix/real/coder.h:47:10: fatal error: mp3common.h: No such file or directory
+   47 | #include "mp3common.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [src/libhelix/real/subdir.mk:56: src/libhelix/real/trigtabs.o] Error 1
+make: *** [makefile:53: all] Error 2
+"make -r -j16 all" terminated with exit code 2. Build might be incomplete.
+
+11:45:26 Build Failed. 28 errors, 0 warnings. (took 352ms)
+

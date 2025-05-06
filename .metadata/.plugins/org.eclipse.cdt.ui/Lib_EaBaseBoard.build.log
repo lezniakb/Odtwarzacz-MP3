@@ -1,0 +1,23 @@
+12:27:20 **** Incremental Build of configuration Debug for project Lib_EaBaseBoard ****
+make -r -j16 all 
+make[1]: Nothing to be done for 'main-build'.
+Performing post-build steps
+arm-none-eabi-size libLib_EaBaseBoard.a ; # arm-none-eabi-objdump -h -S libLib_EaBaseBoard.a >libLib_EaBaseBoard.lss
+   text	   data	    bss	    dec	    hex	filename
+    574	      0	      0	    574	    23e	acc.o (ex libLib_EaBaseBoard.a)
+    590	      0	      0	    590	    24e	eeprom.o (ex libLib_EaBaseBoard.a)
+   1359	     80	     12	   1451	    5ab	flash.o (ex libLib_EaBaseBoard.a)
+    768	      0	      0	    768	    300	font5x7.o (ex libLib_EaBaseBoard.a)
+    164	      0	      0	    164	     a4	joystick.o (ex libLib_EaBaseBoard.a)
+    142	     80	      0	    222	     de	led7seg.o (ex libLib_EaBaseBoard.a)
+   1170	      8	      0	   1178	    49a	light.o (ex libLib_EaBaseBoard.a)
+   3020	      0	    768	   3788	    ecc	oled.o (ex libLib_EaBaseBoard.a)
+   1042	      0	      6	   1048	    418	pca9532.o (ex libLib_EaBaseBoard.a)
+    146	      0	      0	    146	     92	rgb.o (ex libLib_EaBaseBoard.a)
+    232	      0	      0	    232	     e8	rotary.o (ex libLib_EaBaseBoard.a)
+    276	      0	      4	    280	    118	temp.o (ex libLib_EaBaseBoard.a)
+    840	      0	      1	    841	    349	uart2.o (ex libLib_EaBaseBoard.a)
+ 
+
+12:27:20 Build Finished. 0 errors, 0 warnings. (took 197ms)
+
