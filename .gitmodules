@@ -1,0 +1,3 @@
+[submodule "Helix-MP3-Decoder"]
+	path = Helix-MP3-Decoder
+	url = https://github.com/Lefucjusz/Helix-MP3-Decoder.git
