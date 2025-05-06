@@ -435,8 +435,18 @@ static bool init_mp3_player(void)
         return false;
     }
 
+    /* Zapewnienie prawidłowego wyrównania pamięci dla dekodera MP3 */
+    /* Dodatkowa inicjalizacja przed wywołaniem MP3InitDecoder */
+    memset(player.mp3ReadBuffer, 0, MP3_READ_BUFFER_SIZE);
+    memset(player.pcmBuffer, 0, PCM_BUFFER_SIZE * sizeof(short));
+
+    /* Przygotowanie obszaru systemowego dla heap dla dekodera MP3 */
+    static uint32_t mp3DecoderHeap[2048] __attribute__((aligned(8)));
+    memset(mp3DecoderHeap, 0, sizeof(mp3DecoderHeap));
+
     /* Utworzenie dekodera MP3 */
     player.hMP3Decoder = MP3InitDecoder();
+
     if (player.hMP3Decoder == NULL) {
         oled_putString(1, 45, (uint8_t*)"MP3 init error", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
         return false;
