@@ -22,6 +22,7 @@ C_SRCS += \
 ../src/scalfact.c \
 ../src/stproc.c \
 ../src/subband.c \
+../src/testme.c \
 ../src/trigtabs.c 
 
 C_DEPS += \
@@ -43,6 +44,7 @@ C_DEPS += \
 ./src/scalfact.d \
 ./src/stproc.d \
 ./src/subband.d \
+./src/testme.d \
 ./src/trigtabs.d 
 
 OBJS += \
@@ -64,6 +66,7 @@ OBJS += \
 ./src/scalfact.o \
 ./src/stproc.o \
 ./src/subband.o \
+./src/testme.o \
 ./src/trigtabs.o 
 
 
@@ -71,7 +74,7 @@ OBJS += \
 src/%.o: ../src/%.c src/subdir.mk
 	@echo 'Building file: $<'
 	@echo 'Invoking: MCU C Compiler'
-	arm-none-eabi-gcc -DDEBUG -D__USE_CMSIS=CMSISv1p30_LPC17xx -D__CODE_RED -D__NEWLIB__ -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Lib_CMSISv1p30_LPC17xx\inc" -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Lib_EaBaseBoard\inc" -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Lib_FatFs_SD\inc" -I"C:\Users\student\Documents\SQL Class\Odtwarzacz-MP3-main\Lib_MCU\inc" -O0 -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fmerge-constants -fmacro-prefix-map="$(<D)/"= -mcpu=cortex-m3 -mthumb -D__NEWLIB__ -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+	arm-none-eabi-gcc -DDEBUG -D__USE_CMSIS=CMSISv1p30_LPC17xx -D__CODE_RED -D__NEWLIB__ -I"C:\Users\student\Documents\Odtwarzacz-MP3\Lib_CMSISv1p30_LPC17xx\inc" -I"C:\Users\student\Documents\Odtwarzacz-MP3\Lib_EaBaseBoard\inc" -I"C:\Users\student\Documents\Odtwarzacz-MP3\Lib_FatFs_SD\inc" -I"C:\Users\student\Documents\Odtwarzacz-MP3\Lib_MCU\inc" -O0 -g3 -gdwarf-4 -Wall -c -fmessage-length=0 -fno-builtin -ffunction-sections -fmerge-constants -fmacro-prefix-map="$(<D)/"= -mcpu=cortex-m3 -mthumb -D__NEWLIB__ -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
@@ -79,7 +82,7 @@ src/%.o: ../src/%.c src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/bitstream.d ./src/bitstream.o ./src/buffers.d ./src/buffers.o ./src/cr_startup_lpc17.d ./src/cr_startup_lpc17.o ./src/dct32.d ./src/dct32.o ./src/dequant.d ./src/dequant.o ./src/dqchan.d ./src/dqchan.o ./src/fattime.d ./src/fattime.o ./src/helix_mp3.d ./src/helix_mp3.o ./src/huffman.d ./src/huffman.o ./src/hufftabs.d ./src/hufftabs.o ./src/imdct.d ./src/imdct.o ./src/main.d ./src/main.o ./src/mp3dec.d ./src/mp3dec.o ./src/mp3tabs.d ./src/mp3tabs.o ./src/polyphase.d ./src/polyphase.o ./src/scalfact.d ./src/scalfact.o ./src/stproc.d ./src/stproc.o ./src/subband.d ./src/subband.o ./src/trigtabs.d ./src/trigtabs.o
+	-$(RM) ./src/bitstream.d ./src/bitstream.o ./src/buffers.d ./src/buffers.o ./src/cr_startup_lpc17.d ./src/cr_startup_lpc17.o ./src/dct32.d ./src/dct32.o ./src/dequant.d ./src/dequant.o ./src/dqchan.d ./src/dqchan.o ./src/fattime.d ./src/fattime.o ./src/helix_mp3.d ./src/helix_mp3.o ./src/huffman.d ./src/huffman.o ./src/hufftabs.d ./src/hufftabs.o ./src/imdct.d ./src/imdct.o ./src/main.d ./src/main.o ./src/mp3dec.d ./src/mp3dec.o ./src/mp3tabs.d ./src/mp3tabs.o ./src/polyphase.d ./src/polyphase.o ./src/scalfact.d ./src/scalfact.o ./src/stproc.d ./src/stproc.o ./src/subband.d ./src/subband.o ./src/testme.d ./src/testme.o ./src/trigtabs.d ./src/trigtabs.o
 
 .PHONY: clean-src
 

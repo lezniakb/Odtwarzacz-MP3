@@ -28,9 +28,9 @@
 #include <string.h>
 
 /* Podstawowe definicje */
-#define MP3_READ_BUFFER_SIZE 8192  // Zwiększony rozmiar bufora (oryginalnie 4096)
-#define MP3_OUT_BUFFER_SIZE 2304   // Zwiększony rozmiar bufora (oryginalnie 1152)
-#define PCM_BUFFER_SIZE 4608       // Zwiększony rozmiar bufora (oryginalnie 2304)
+#define MP3_READ_BUFFER_SIZE 4096
+#define MP3_OUT_BUFFER_SIZE 1152
+#define PCM_BUFFER_SIZE 2304
 
 /* Pinout dla LEDów (linijka diodowa) */
 #define I2C_LED_EXPANDER_ADDR 0x20  // Adres expandera I2C dla linijki diodowej
