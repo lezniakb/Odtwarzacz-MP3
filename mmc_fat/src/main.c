@@ -21,25 +21,15 @@
 #include "diskio.h"			/* wczytana biblioteka do obslugi FAT i karty SD */
 #include "ff.h"
 
-#include "helix_mp3.h"  /* biblioteka do dekodowania MP3 */
 
 #include "oled.h"			/* wczytana biblioteka do obslugi ekranu OLED */
 #include <stdbool.h>
 #include <string.h>
 
-/* Podstawowe definicje */
-#define MP3_READ_BUFFER_SIZE 4096
-#define MP3_OUT_BUFFER_SIZE 1152
-#define PCM_BUFFER_SIZE 2304
+#define WAV_BUF_SIZE 512
 
 /* Pinout dla LEDów (linijka diodowa) */
 #define I2C_LED_EXPANDER_ADDR 0x20  // Adres expandera I2C dla linijki diodowej
-
-/* Definicje portów dla rotary enkodera */
-#define ROT_A_PORT 2
-#define ROT_A_PIN 10
-#define ROT_B_PORT 2
-#define ROT_B_PIN 11
 
 /* zapisywanie danych o znalezionych plikach na karcie SD */
 #define MAX_FILES 9
@@ -426,118 +416,6 @@ static void display_files(void)
     oled_putString(1, 55, (uint8_t*)status_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 }
 
-/* Inicjalizacja odtwarzacza MP3 */
-static bool init_mp3_player(void)
-{
-    /* Sprawdzenie czy wszystkie wymagane peryferia są zainicjalizowane */
-    if (player.mp3ReadBuffer == NULL || player.pcmBuffer == NULL) {
-        oled_putString(1, 45, (uint8_t*)"Buffer error", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        return false;
-    }
-
-    /* Zapewnienie prawidłowego wyrównania pamięci dla dekodera MP3 */
-    /* Dodatkowa inicjalizacja przed wywołaniem MP3InitDecoder */
-    memset(player.mp3ReadBuffer, 0, MP3_READ_BUFFER_SIZE);
-    memset(player.pcmBuffer, 0, PCM_BUFFER_SIZE * sizeof(short));
-
-    /* Przygotowanie obszaru systemowego dla heap dla dekodera MP3 */
-    static uint32_t mp3DecoderHeap[2048] __attribute__((aligned(8)));
-    memset(mp3DecoderHeap, 0, sizeof(mp3DecoderHeap));
-
-    /* Utworzenie dekodera MP3 */
-    player.hMP3Decoder = MP3InitDecoder();
-
-    if (player.hMP3Decoder == NULL) {
-        oled_putString(1, 45, (uint8_t*)"MP3 init error", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        return false;
-    }
-
-    return true;
-}
-
-/* Odtwarzanie pliku MP3 */
-static void play_mp3_file(const char* filename)
-{
-    FRESULT res;
-
-    /* Zatrzymaj aktualnie odtwarzany plik */
-    if (player.isPlaying) {
-        stop_mp3();
-    }
-
-    /* Wyczyść bufor PCM dla bezpieczeństwa */
-    memset(player.pcmBuffer, 0, PCM_BUFFER_SIZE * sizeof(short));
-
-    /* Otwórz plik MP3 */
-    res = f_open(&player.currentFile, filename, FA_READ);
-    if (res != FR_OK) {
-        sprintf((char*)buf, "Err open: %d", res);
-        oled_putString(1, 45, (uint8_t*)buf, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        return;
-    }
-
-    /* Wczytaj początkowe dane */
-    UINT bytesRead;
-    player.bytesLeft = 0;
-    res = f_read(&player.currentFile, player.mp3ReadBuffer, MP3_READ_BUFFER_SIZE, &bytesRead);
-    if (res != FR_OK || bytesRead == 0) {
-        f_close(&player.currentFile);
-        return;
-    }
-
-    player.bytesLeft = bytesRead;
-    player.readPtr = player.mp3ReadBuffer;
-    player.isPlaying = true;
-
-    /* Włącz timer odtwarzania */
-    TIM_Cmd(LPC_TIM0, ENABLE);
-
-    /* Aktualizacja wyświetlacza */
-    display_files();
-}
-
-/* Zatrzymanie odtwarzania */
-static void stop_mp3(void)
-{
-    if (player.isPlaying) {
-        TIM_Cmd(LPC_TIM0, DISABLE);
-        f_close(&player.currentFile);
-        player.isPlaying = false;
-        player.bytesLeft = 0;
-        player.readPtr = NULL;
-
-        /* Wyczyść wyjście DAC */
-        DAC_UpdateValue(LPC_DAC, 512);  // Wartość środkowa (cisza)
-
-        /* Aktualizacja wyświetlacza */
-        display_files();
-    }
-}
-
-/* Następny utwór */
-static void next_track(void)
-{
-    if (player.fileCount > 0) {
-        player.currentTrack = (player.currentTrack + 1) % player.fileCount;
-        if (player.isPlaying) {
-            play_mp3_file(player.fileList[player.currentTrack]);
-        }
-        display_files();
-    }
-}
-
-/* Poprzedni utwór */
-static void prev_track(void)
-{
-    if (player.fileCount > 0) {
-        player.currentTrack = (player.currentTrack - 1 + player.fileCount) % player.fileCount;
-        if (player.isPlaying) {
-            play_mp3_file(player.fileList[player.currentTrack]);
-        }
-        display_files();
-    }
-}
-
 /* Ustawienie głośności */
 static void set_volume(uint32_t vol)
 {
@@ -551,84 +429,6 @@ static void set_volume(uint32_t vol)
 
     /* Aktualizacja wyświetlacza */
     display_files();
-}
-
-/* Dekodowanie następnej ramki MP3 */
-static bool decode_next_mp3_frame(void)
-{
-    int offset, err;
-    UINT bytesRead;
-
-    /* Sprawdź czy odtwarzacz jest aktywny i dane są dostępne */
-    if (!player.isPlaying || player.readPtr == NULL || player.hMP3Decoder == NULL) {
-        return false;
-    }
-
-    /* Szukanie nagłówka MP3 */
-    offset = MP3FindSyncWord(player.readPtr, player.bytesLeft);
-    if (offset < 0) {
-        /* Jeśli nie znaleziono nagłówka, wczytaj więcej danych */
-        /* Przenieś pozostałe dane na początek bufora */
-        if (player.bytesLeft > 0) {
-            memmove(player.mp3ReadBuffer, player.readPtr, player.bytesLeft);
-        }
-
-        /* Wczytaj więcej danych */
-        FRESULT res = f_read(&player.currentFile, player.mp3ReadBuffer + player.bytesLeft,
-                            MP3_READ_BUFFER_SIZE - player.bytesLeft, &bytesRead);
-
-        if (res != FR_OK || bytesRead == 0) {
-            /* Koniec pliku lub błąd - zatrzymaj odtwarzanie lub przejdź do następnego pliku */
-            next_track();  // Automatyczne przejście do następnego utworu po zakończeniu
-            return false;
-        }
-
-        player.readPtr = player.mp3ReadBuffer;
-        player.bytesLeft += bytesRead;
-
-        /* Ponowna próba znalezienia nagłówka */
-        offset = MP3FindSyncWord(player.readPtr, player.bytesLeft);
-        if (offset < 0) {
-            return false;
-        }
-    }
-
-    /* Sprawdź czy offset jest w zakresie bufora */
-    if (offset >= player.bytesLeft) {
-        return false;
-    }
-
-    /* Przesunięcie wskaźnika do nagłówka ramki */
-    player.readPtr += offset;
-    player.bytesLeft -= offset;
-
-    /* Dekodowanie ramki */
-    err = MP3Decode(player.hMP3Decoder, &player.readPtr, &player.bytesLeft,
-                    player.pcmBuffer, 0);
-
-    if (err) {
-        /* Błąd dekodowania - pomiń ramkę */
-        if (err == ERR_MP3_INDATA_UNDERFLOW) {
-            /* Brak wystarczających danych - wczytaj więcej */
-            if (player.bytesLeft > 0) {
-                memmove(player.mp3ReadBuffer, player.readPtr, player.bytesLeft);
-            }
-
-            FRESULT res = f_read(&player.currentFile, player.mp3ReadBuffer + player.bytesLeft,
-                                MP3_READ_BUFFER_SIZE - player.bytesLeft, &bytesRead);
-
-            if (res != FR_OK || bytesRead == 0) {
-                next_track();  // Automatyczne przejście do następnego utworu po zakończeniu
-                return false;
-            }
-
-            player.readPtr = player.mp3ReadBuffer;
-            player.bytesLeft += bytesRead;
-        }
-        return false;
-    }
-
-    return true;
 }
 
 int main (void) {
@@ -666,7 +466,7 @@ int main (void) {
 
     /* wyczysc ekran OLED, oraz wstaw komunikat swiadczacy o poprawnym uruchomieniu ekranu*/
     oled_clearScreen(OLED_COLOR_WHITE);
-    oled_putString(1, 1, (uint8_t*)"MP3 Player", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+    oled_putString(1, 1, (uint8_t*)"WAV Player", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
     oled_putString(1, 9, (uint8_t*)"Inicjalizacja...", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 
     delay_ms(500);
@@ -674,22 +474,22 @@ int main (void) {
 
     /* sprawdzenie czy karta SD jest zainicjalizowana, oraz czy jest dostepna */
     if (stat & STA_NOINIT) {
-        oled_putString(1, 18, (uint8_t*)"Init Failed", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+        oled_putString(1, 18, (uint8_t*)"Blad init SD", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
     }
 
     if (stat & STA_NODISK) {
-        oled_putString(1, 27, (uint8_t*)"No SD card", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+        oled_putString(1, 27, (uint8_t*)"Brak karty SD", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
     }
 
     /* jezeli sprawdzenie nie udalo sie, zatrzymaj program */
     if (stat != 0) {
-        oled_putString(1, 36, (uint8_t*)"SD Error. Halting.", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+        oled_putString(1, 36, (uint8_t*)"Blad SD, stop.", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
         while(1) {
             __WFI(); // Wait for interrupt - zatrzymanie CPU w trybie oszczędzania energii
         }
     }
   
-    oled_putString(1, 18, (uint8_t*)"SD Init OK", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+    oled_putString(1, 18, (uint8_t*)"Poprawne SD", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 
     /* zamontowanie systemu plikow FAT */
     res = f_mount(0, &Fatfs[0]);
@@ -718,12 +518,11 @@ int main (void) {
         res = f_readdir(&dir, &Finfo);
         if ((res != FR_OK) || !Finfo.fname[0]) break;
 
-        /* pomin foldery i ukryte pliki, akceptuj tylko pliki MP3 */
         if (Finfo.fattrib & AM_DIR || Finfo.fname[0] == '_') continue;
 
-        /* Sprawdź czy plik ma rozszerzenie .MP3 */
+        /* Sprawdź czy plik ma rozszerzenie .wav */
         char *ext = strrchr(Finfo.fname, '.');
-        if (!ext || (strcasecmp(ext, ".MP3") != 0)) continue;
+        if (!ext || (strcasecmp(ext, ".WAV") != 0)) continue;
 
         /* zapisz nazwe pliku do pamieci */
         snprintf(player.fileList[player.fileCount], MAX_FILENAME_LEN, "%s", Finfo.fname);
@@ -732,95 +531,57 @@ int main (void) {
     }
 
     if (player.fileCount == 0) {
-        oled_putString(1, 36, (uint8_t*)"No MP3 files found", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+        oled_putString(1, 36, (uint8_t*)"Brak plikow WAV", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
         delay_ms(2000);
     } else {
-        result = sprintf((char*)buf, "Found %d MP3 files", player.fileCount);
+        result = sprintf((char*)buf, "Pliki WAV: %d", player.fileCount);
         oled_putString(1, 36, (uint8_t*)buf, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
         delay_ms(1000);
     }
 
-    /* Inicjalizacja dekodera MP3 */
-    if (!init_mp3_player()) {
-        oled_putString(1, 45, (uint8_t*)"MP3 decoder error", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        delay_ms(2000);
-    }
-
     /* Wyświetl listę plików */
     display_files();
-
-    /* Ustawienie początkowej głośności */
-    set_volume(player.volume);
-
-    /* obsluga wciskania przycisku i pokrętła */
-    bool lastButtonPower = true;        // Ostatni stan przycisku zasilania
-    bool lastButtonPlay = true;         // Ostatni stan przycisku play/pause
-    bool lastButtonNext = true;         // Ostatni stan przycisku next
-    uint8_t lastRotA = 1;               // Ostatni stan pinu A enkodera
-    uint8_t lastRotB = 1;               // Ostatni stan pinu B enkodera
-
-    /* Główna pętla programu */
-    while (1) {
-        /* Obsługa pokrętła (sterowanie głośnością) */
-        uint8_t rot_a = (GPIO_ReadValue(ROT_A_PORT) & (1 << ROT_A_PIN)) ? 1 : 0;
-        uint8_t rot_b = (GPIO_ReadValue(ROT_B_PORT) & (1 << ROT_B_PIN)) ? 1 : 0;
-
-        /* Wykrywanie zmiany stanu enkodera */
-        if (rot_a != lastRotA) {
-            /* Wykryto obrót - określ kierunek */
-            if (rot_a != rot_b) {
-                /* Obrót zgodnie z ruchem wskazówek zegara - zwiększ głośność */
-                set_volume(player.volume + 5);
-            } else {
-                /* Obrót przeciwnie do ruchu wskazówek zegara - zmniejsz głośność */
-                if (player.volume >= 5) set_volume(player.volume - 5);
-                else set_volume(0);
-            }
-            lastRotA = rot_a;
-            lastRotB = rot_b;
-        }
-
-        /* Odczyt stanu przycisków */
-        bool btnPower = (GPIO_ReadValue(0) & (1 << 4)) != 0;
-        bool btnPlay = (GPIO_ReadValue(0) & (1 << 5)) != 0;
-        bool btnNext = (GPIO_ReadValue(0) & (1 << 6)) != 0;
-
-        /* Wykryj wciskanie przycisku zasilania - włącz/wyłącz ekran */
-        if (!btnPower && lastButtonPower) {
-            player.screenState = !player.screenState;
-            if (!player.screenState) {
-                oled_clearScreen(OLED_COLOR_BLACK);
-            } else {
-                display_files();
-            }
-        }
-
-        /* Wykryj wciskanie przycisku play/pause */
-        if (!btnPlay && lastButtonPlay) {
-            if (player.isPlaying) {
-                stop_mp3();
-            } else if (player.fileCount > 0) {
-                play_mp3_file(player.fileList[player.currentTrack]);
-            }
-        }
-
-        /* Wykryj wciskanie przycisku next */
-        if (!btnNext && lastButtonNext) {
-            next_track();
-        }
-
-        /* Zapamietaj stan przycisków */
-        lastButtonPower = btnPower;
-        lastButtonPlay = btnPlay;
-        lastButtonNext = btnNext;
-
-        /* Dekodowanie MP3 jeśli odtwarzacz jest aktywny */
-        if (player.isPlaying) {
-            /* Dekoduj kolejną ramkę MP3 */
-            decode_next_mp3_frame();
-        }
-
-        /* Krótka pauza aby obsługa przycisków była stabilna */
-        delay_ms(10);
+    
+        // Czytanie nagłówka 44 bajty
+    f_read(&file, hdr, 44, &br);
+    if (br != 44 || hdr[0] != 'R' || hdr[1] != 'I' || hdr[2] != 'F' || hdr[3] != 'F') {
+        oled_putString(1,45, (uint8_t*)"Zly WAV\r\n",OLED_COLOR_BLACK, OLED_COLOR_WHITE);
+        f_close(&file);
+        return 1;
     }
+
+    sampleRate = hdr[24] | (hdr[25]<<8) | (hdr[26]<<16) | (hdr[27]<<24);
+    dataSize = hdr[40] | (hdr[41]<<8) | (hdr[42]<<16) | (hdr[43]<<24);
+    numChannels = hdr[22] | (hdr[23] << 8);
+
+    delay = 1000000U / sampleRate;
+
+    if (numChannels != 1 && numChannels != 2) {
+        oled_putString(1,54, (uint8_t*)"Niewspierany kanal\r\n",OLED_COLOR_BLACK, OLED_COLOR_WHITE));
+        f_close(&file);
+        return 1;
+    }
+
+    // Odtwarzanie danych PCM (mono lub stereo)
+    while (dataSize > 0) {
+        UINT toRead = (dataSize > WAV_BUF_SIZE) ? WAV_BUF_SIZE : dataSize;
+        f_read(&file, wavBuf, toRead, &br);
+        if (br == 0) break;
+        dataSize -= br;
+
+        for (UINT i = 0; i + 1 < br;) {
+            int16_t pcm = wavBuf[i] | (wavBuf[i+1] << 8);
+            i += (numChannels == 2) ? 4 : 2; // jeśli stereo, pomiń kanał R
+            uint16_t dacVal = (uint16_t)((pcm + 32768) >> 6);
+            DAC_UpdateValue(LPC_DAC, dacVal);
+            Timer0_us_Wait(delay);
+        }
+    }
+
+    f_close(&file);
+    return 0;
+}
+
+void check_failed(uint8_t *file, uint32_t line) {
+    while (1);
 }
