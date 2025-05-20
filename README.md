@@ -6,12 +6,12 @@
 ### Current version: **v0.0.1-alpha**
 
 ## Project Status
-- [ ] Turning the player on and off with a button (experimental)
+- [x] Turning the player on and off with a button (experimental)
 - [x] OLED display + SPI/F + displaying track list
 - [x] SD Memory card + SPI/F
 - [ ] DAC converter + timer + interrupts (MP3 files preparation)
-- [ ] Amplifier control
-- [ ] Amplifier knob
+- [x] Amplifier control
+- [x] Amplifier knob
 - [ ] Volume visualization on a LED bar + I2C as the display interace
 
 ### Additional notes
