@@ -1,5 +1,5 @@
 /*****************************************************************************
- *   Odtwarzacz WAV, Systemy Wbudowane 2024/2025, DUZY PROJEKT
+ *   Odtwarzacz WAV, Systemy Wbudowane 2024/2025
  *
  *   Zadaniem algorytmu jest odczytanie plików WAV z karty SD,
  *   oraz uruchomienie ich na głośniku.
@@ -27,6 +27,10 @@
 #include <string.h>
 
 #define WAV_BUF_SIZE 512
+
+#define HALF_BUF_SIZE  (WAV_BUF_SIZE/2)
+
+static uint8_t wavBuf[2][HALF_BUF_SIZE];
 
 /* Pinout dla LEDów (linijka diodowa) */
 #define I2C_LED_EXPANDER_ADDR 0x20  // Adres expandera I2C dla linijki diodowej
@@ -59,6 +63,10 @@ typedef struct {
     uint32_t bufferPos;           // NOWE: pozycja w buforze
     uint32_t remainingData;       // NOWE: pozostałe dane do odtworzenia
     bool needNewBuffer;           // NOWE: flaga potrzeby nowego bufora
+    bool isPaused;
+    uint8_t activeBuf;       // 0 lub 1 — który pół-bufor jest odtwarzany
+    bool bufReady[2];        // czy wavBuf[i] jest załadowany
+    uint32_t bufPos;         // pozycja w aktywnym pół-buforze (w bajtach)
 } PlayerState;
 
 // Inicjalizacja z nowymi polami
@@ -252,42 +260,77 @@ static void button_init(void)
     GPIO_SetDir(0, 1 << 6, 0);
 }
 
+/* TIMER1 IRQ handler (8 kHz sample rate) */
 void TIMER1_IRQHandler(void) {
-    if (TIM_GetIntStatus(LPC_TIM1, TIM_MR0_INT)) {
-
-        if (player.isPlaying && player.bufferPos + 1 < WAV_BUF_SIZE) {
-            int16_t pcm_sample = (int16_t)(player.wavBuf[player.bufferPos] |
-                                          (player.wavBuf[player.bufferPos + 1] << 8));
-
-            // Wzmocnienie sygnału PCM (+20%)
-            int32_t amplified = pcm_sample * 6 / 5;
-            if (amplified > 32767) amplified = 32767;
-            if (amplified < -32768) amplified = -32768;
-
-            uint32_t unsigned_sample = (uint32_t)(amplified + 32768);
-            unsigned_sample = (unsigned_sample * player.volume) / 100;
-
-            uint16_t dac_value = (unsigned_sample * 1023) / 65535;
-            DAC_UpdateValue(LPC_DAC, dac_value);
-
-            player.bufferPos += 2;
-
-            // Gdy zużyto pierwszą połowę bufora — przygotuj nową
-            if (player.bufferPos == WAV_BUF_SIZE / 2) {
-                player.needNewBuffer = true;
-            }
-
-        } else {
-            // Koniec danych w buforze
-            DAC_UpdateValue(LPC_DAC, 512);
-
-            if (player.isPlaying) {
-                player.bufferPos = 0;
-                player.needNewBuffer = true;
-            }
+    if (!TIM_GetIntStatus(LPC_TIM1, TIM_MR0_INT)) return;
+    if (player.isPlaying && !player.isPaused && player.bufReady[player.activeBuf]) {
+        /* Read PCM sample */
+        uint8_t *buf = wavBuf[player.activeBuf];
+        int16_t samp = buf[player.bufPos] | (buf[player.bufPos+1] << 8);
+        /* Amplify + volume */
+        int32_t amp = samp * 6/5;
+        amp = (amp>32767?32767:(amp<-32768?-32768:amp));
+        uint32_t u = (amp + 32768) * player.volume / 100;
+        uint16_t dac = u * 1023 / 65535;
+        DAC_UpdateValue(LPC_DAC, dac);
+        player.bufPos += 2;
+        /* Half-buffer exhausted? */
+        if (player.bufPos >= HALF_BUF_SIZE) {
+            player.bufReady[player.activeBuf] = false;
+            player.activeBuf ^= 1;
+            player.bufPos = 0;
         }
+    }
+    TIM_ClearIntPending(LPC_TIM1, TIM_MR0_INT);
+}
 
-        TIM_ClearIntPending(LPC_TIM1, TIM_MR0_INT);
+/* play_wav_file: opens WAV, reads header, fills ping-pong buffers, starts timer */
+static void play_wav_file(const char* filename) {
+    FRESULT fr;
+    UINT    br;
+    uint8_t hdr[44];
+
+    stop_wav();
+    fr = f_open(&player.currentFile, filename, FA_READ);
+    if (fr != FR_OK) {
+        oled_putString(1,45,(uint8_t*)"Open err",OLED_COLOR_BLACK,OLED_COLOR_WHITE);
+        return;
+    }
+    f_read(&player.currentFile, hdr, 44, &br);
+    /* Check RIFF and fmt */
+    player.sampleRate = hdr[24] | (hdr[25]<<8) | (hdr[26]<<16) | (hdr[27]<<24);
+    player.remainingData = hdr[40] | (hdr[41]<<8) | (hdr[42]<<16) | (hdr[43]<<24);
+    player.numChannels  = hdr[22] | (hdr[23]<<8);
+    if (hdr[0]!='R' || hdr[1]!='I' || player.numChannels!=1 || player.sampleRate!=8000) {
+        oled_putString(1,45,(uint8_t*)"Fmt err",OLED_COLOR_BLACK,OLED_COLOR_WHITE);
+        f_close(&player.currentFile);
+        return;
+    }
+    /* Init state */
+    player.isPlaying = true;
+    player.isPaused  = false;
+    player.activeBuf = 0;
+    player.bufPos    = 0;
+    /* Pre-fill both half-buffers */
+    for (int i = 0; i < 2; i++) {
+        UINT toRead = (player.remainingData>HALF_BUF_SIZE?HALF_BUF_SIZE:player.remainingData);
+        fr = f_read(&player.currentFile, wavBuf[i], toRead, &br);
+        player.bufReady[i] = (br>0);
+        player.remainingData -= br;
+    }
+    /* Start timer at 8 kHz */
+    TIM_Cmd(LPC_TIM1, ENABLE);
+    oled_putString(1,45,(uint8_t*)"PLAYING...",OLED_COLOR_BLACK,OLED_COLOR_WHITE);
+}
+
+/* stop_wav: stops timer, closes file, clears flags, silence DAC */
+static void stop_wav(void) {
+    if (player.isPlaying) {
+        player.isPlaying = false;
+        player.isPaused  = false;
+        TIM_Cmd(LPC_TIM1, DISABLE);
+        f_close(&player.currentFile);
+        DAC_UpdateValue(LPC_DAC, 512);
     }
 }
 
@@ -435,95 +478,9 @@ static void display_files(void)
     }
 
     /* Wyświetlenie statusu odtwarzania */
-    char status_str[16];
-    sprintf(status_str, "Vol: %lu%%  %s", player.volume, player.isPlaying ? "PLAY" : "STOP");
-    oled_putString(1, 55, (uint8_t*)status_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-}
-
-/* Zatrzymanie odtwarzania */
-static void stop_wav(void)
-{
-    if (player.isPlaying) {
-        player.isPlaying = false;
-        f_close(&player.currentFile);
-
-        // Wyzerowanie DAC (cisza)
-        DAC_UpdateValue(LPC_DAC, 512);
-
-        // Aktualizacja wyświetlacza
-        display_files();
-    }
-}
-
-static void play_wav_file(const char* filename)
-{
-    FRESULT fr;
-    UINT br;
-    uint8_t hdr[44];
-    char tmp_str[64];
-
-    // Zatrzymaj obecne odtwarzanie
-    stop_wav();
-
-    // Otwórz plik WAV
-    fr = f_open(&player.currentFile, filename, FA_READ);
-    if (fr != FR_OK) {
-        sprintf(tmp_str, "Open err: %d", fr);
-        oled_putString(1, 45, (uint8_t*)tmp_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        return;
-    }
-
-    // Przeczytaj nagłówek WAV (44 bajty)
-    f_read(&player.currentFile, hdr, 44, &br);
-    if (br != 44 || hdr[0] != 'R' || hdr[1] != 'I' || hdr[2] != 'F' || hdr[3] != 'F') {
-        oled_putString(1, 45, (uint8_t*)"Invalid WAV", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        f_close(&player.currentFile);
-        return;
-    }
-
-    // Wyciągnij parametry z nagłówka
-    player.sampleRate = hdr[24] | (hdr[25]<<8) | (hdr[26]<<16) | (hdr[27]<<24);
-    player.dataSize = hdr[40] | (hdr[41]<<8) | (hdr[42]<<16) | (hdr[43]<<24);
-    player.numChannels = hdr[22] | (hdr[23] << 8);
-
-    // Sprawdź czy format jest obsługiwany
-    if (player.numChannels != 1) {
-        oled_putString(1, 45, (uint8_t*)"Only mono supported", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        f_close(&player.currentFile);
-        return;
-    }
-
-    if (player.sampleRate != 8000) {
-        sprintf(tmp_str, "Unsupported SR: %lu", player.sampleRate);
-        oled_putString(1, 45, (uint8_t*)tmp_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        f_close(&player.currentFile);
-        return;
-    }
-
-    // Wyświetl informacje o pliku
-    sprintf(tmp_str, "8kHz Mono, Size: %lu", player.dataSize);
-    oled_putString(1, 36, (uint8_t*)tmp_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-
-    // Inicjalizuj parametry odtwarzania
-    player.remainingData = player.dataSize;
-    player.bufferPos = 0;
-    player.needNewBuffer = true;
-
-    // Załaduj pierwszy bufor
-    UINT toRead = (player.remainingData > WAV_BUF_SIZE) ? WAV_BUF_SIZE : player.remainingData;
-    fr = f_read(&player.currentFile, player.wavBuf, toRead, &br);
-    if (br > 0) {
-        player.remainingData -= br;
-        player.bufferPos = 0;
-        player.needNewBuffer = false;
-        player.isPlaying = true;
-
-
-        oled_putString(1, 45, (uint8_t*)"Playing...", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-    } else {
-        oled_putString(1, 45, (uint8_t*)"Read error", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        f_close(&player.currentFile);
-    }
+//    char status_str[16];
+//    sprintf(status_str, "Vol: %lu%%  %s", player.volume, player.isPlaying ? "PLAY" : "STOP");
+//    oled_putString(1, 55, (uint8_t*)status_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 }
 
 /* Uruchomienie kolejnego utworu */
@@ -554,9 +511,6 @@ static void set_volume(uint32_t vol)
 
     /* Aktualizacja linijki diodowej */
     led_bar_set(player.volume);
-
-    /* Aktualizacja wyświetlacza */
-    display_files();
 }
 
 int main (void) {
@@ -566,11 +520,11 @@ int main (void) {
 //    UINT br;        /* liczba przeczytanych bajtów */
 //    char path[64];  /* ścieżka do pliku */
 //	PINSEL_CFG_Type PinCfg;
-	
-    SystemInit();   
+
+    SystemInit();
     SysTick_Config(SystemCoreClock / 1000);    // 1ms ticks
     Timer0_us_Wait(100000); // 100 ms Krótkie opóźnienie dla stabilizacji systemów
-	
+
     init_ssp();     /* SPI - komunikacja z karta SD */
     init_i2c();     /* I2C - komunikacja z OLED i linijką diodową */
     init_adc();     /* ADC - wejście analogowe (potencjometr) */
@@ -579,7 +533,7 @@ int main (void) {
 	init_dac();
 	init_Timer();
     Timer0_us_Wait(SEKUNDA); // 1 sekunda
-	
+
     oled_init();
     oled_clearScreen(OLED_COLOR_WHITE);
     oled_putString(1, 1, (uint8_t*)"WAV Player", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
@@ -589,7 +543,7 @@ int main (void) {
     led_bar_init();
 
     /* Ustawienie początkowego poziomu głośności */
-    set_volume(50);
+    set_volume(95);
     led_bar_set(player.volume);
 
     stat = disk_initialize(0);		/* inicjalizacja karty SD */
@@ -647,106 +601,67 @@ int main (void) {
     sprintf(msg, "Znaleziono %d pliki WAV", player.fileCount);
     oled_putString(1, 30, (uint8_t*)msg, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 	Timer0_us_Wait(100000); // 100 ms
-    stop_wav();
-    /* Wyświetlenie listy plików */
-    display_files();
+	display_files();
+	if (player.fileCount>0) play_wav_file(player.fileList[player.currentTrack]);
 
-    /* Automatyczne odtwarzanie pierwszego pliku, jeśli jest dostępny */
-    if (player.fileCount > 0) {
-        player.currentTrack = 0;  // Wybierz pierwszy plik
-        play_wav_file(player.fileList[player.currentTrack]);
-    }
+	uint32_t lastBtnCheck = 0;
+	uint32_t lastADCCheck = 0;
+	uint8_t  lastRotA = 0, lastRotB = 0;
+	uint32_t rotLastChange = 0;
 
-    /* Główna pętla programu */
-    uint32_t lastBtnCheck = 0;
-    uint8_t lastRotA = 0, lastRotB = 0;
-    uint32_t rotLastChange = 0;
-
-    while (1) {
-        uint32_t currentTime = getTicks();
-
-        /* Sprawdzanie przycisków co 50ms (debouncing) */
-        if (currentTime - lastBtnCheck >= 50) {
-            lastBtnCheck = currentTime;
-
-            /* Przycisk Play/Pause */
-            if (!(GPIO_ReadValue(0) & (1 << 5))) {
-                if (player.isPlaying) {
-                    stop_wav();
-                } else if (player.fileCount > 0) {
-                    play_wav_file(player.fileList[player.currentTrack]);
+        while (1) {
+            uint32_t now = getTicks();
+            /* Buttons */
+            if (now-lastBtnCheck>=50) {
+                lastBtnCheck = now;
+                if (!(GPIO_ReadValue(0)&(1<<5))) {
+                    if (player.isPlaying && !player.isPaused) {
+                        TIM_Cmd(LPC_TIM1, DISABLE);
+                        player.isPaused = true;
+                        oled_putString(1,45,(uint8_t*)"PAUSE",OLED_COLOR_BLACK,OLED_COLOR_WHITE);
+                    } else if (player.isPlaying && player.isPaused) {
+                        TIM_Cmd(LPC_TIM1, ENABLE);
+                        player.isPaused = false;
+                        oled_putString(1,45,(uint8_t*)"PLAY ",OLED_COLOR_BLACK,OLED_COLOR_WHITE);
+                    } else if (!player.isPlaying && player.fileCount>0) {
+                        play_wav_file(player.fileList[player.currentTrack]);
+                    }
                 }
-                Timer0_us_Wait(200000); // 200 ms  Debouncing
-            }
-
-            /* Przycisk Next */
-            if (!(GPIO_ReadValue(0) & (1 << 6))) {
-                next_track();
-                if (player.isPlaying) {
-                    stop_wav();
-                    play_wav_file(player.fileList[player.currentTrack]);
-                }
-                Timer0_us_Wait(200000); // 200 ms  Debouncing
-            }
-        }
-
-        /* Sprawdzenie enkodera obrotowego (głośność) */
-        uint8_t rotA = GPIO_ReadValue(ROT_A_PORT) & (1 << ROT_A_PIN);
-        uint8_t rotB = GPIO_ReadValue(ROT_B_PORT) & (1 << ROT_B_PIN);
-
-        /* Detekcja ruchu enkodera */
-        if ((lastRotA != rotA) && currentTime - rotLastChange > 5) {
-            rotLastChange = currentTime;
-
-            if (rotA != rotB) {
-                /* Zwiększenie głośności */
-                if (player.volume < 99 ) {
-                    set_volume(player.volume + 5);
-                }
-            } else {
-                /* Zmniejszenie głośności */
-                if (player.volume > 0) {
-                    set_volume(player.volume - 5);
+                if (!(GPIO_ReadValue(0)&(1<<6))) {
+                    next_track();
+                    if (player.isPlaying) {
+                        stop_wav(); play_wav_file(player.fileList[player.currentTrack]);
+                    }
                 }
             }
-        }
-        lastRotA = rotA;
-        lastRotB = rotB;
-
-        if (player.isPlaying && player.needNewBuffer && player.remainingData > 0) {
-            UINT br;
-            UINT toRead = (player.remainingData > WAV_BUF_SIZE / 2) ? WAV_BUF_SIZE / 2 : player.remainingData;
-
-            // Przesuń dane drugiej połowy do pierwszej
-
-            // Wczytaj nowe dane do drugiej połowy bufora
-            FRESULT fr = f_read(&player.currentFile, player.wavBuf + WAV_BUF_SIZE / 2, toRead, &br);
-
-            memcpy(player.wavBuf, player.wavBuf + WAV_BUF_SIZE / 2, WAV_BUF_SIZE / 2);
-
-            if (br > 0) {
-                player.remainingData -= br;
-                player.needNewBuffer = false;
-            } else {
-                stop_wav();  // koniec pliku lub błąd
+            /* ADC volume */
+            if (now-lastADCCheck>=200) {
+                lastADCCheck = now;
+                ADC_StartCmd(LPC_ADC,ADC_START_NOW);
+                while (!ADC_ChannelGetStatus(LPC_ADC,ADC_CHANNEL_0,ADC_DATA_DONE));
+                uint32_t v = ADC_ChannelGetData(LPC_ADC,ADC_CHANNEL_0)*100/4095;
+                if (abs((int)v-(int)player.volume)>2) set_volume(v);
             }
-        }
-
-        /* Sprawdź czy odtwarzanie się zakończyło */
-        if (player.isPlaying && player.remainingData == 0 && player.bufferPos >= WAV_BUF_SIZE) {
-            stop_wav();
-            oled_putString(1, 45, (uint8_t*)"Finished", OLED_COLOR_BLACK, OLED_COLOR_WHITE);
-        }
-
-        /* Sprawdzanie potencjometru (alternatywne sterowanie głośnością) */
-        ADC_StartCmd(LPC_ADC, ADC_START_NOW);
-        while (!(ADC_ChannelGetStatus(LPC_ADC, ADC_CHANNEL_0, ADC_DATA_DONE)));
-        uint32_t adcVal = ADC_ChannelGetData(LPC_ADC, ADC_CHANNEL_0);
-
-        /* Konwersja wartości ADC (12-bit: 0-4095) na głośność (0-100) */
-        uint32_t newVol = adcVal * 100 / 4095;
-        if (abs(newVol - player.volume) > 5) {  // Zmiana tylko przy znaczącej różnicy
-            set_volume(newVol);
+            /* Encoder optional ... */
+            /* Buffer refill */
+            if (player.isPlaying && !player.isPaused) {
+                for (int i=0;i<2;i++) {
+                    if (!player.bufReady[i] && player.remainingData>0) {
+                        UINT br;
+                        UINT toRead = (player.remainingData>HALF_BUF_SIZE?HALF_BUF_SIZE:player.remainingData);
+                        FRESULT fr = f_read(&player.currentFile, wavBuf[i], toRead, &br);
+                        if (fr==FR_OK && br>0) {
+                            player.remainingData -= br;
+                            player.bufReady[i] = true;
+                        } else stop_wav();
+                    }
+                }
+            }
+            /* End of playback */
+            if (player.isPlaying && !player.isPaused && player.remainingData==0
+               && !player.bufReady[0] && !player.bufReady[1]) {
+                stop_wav();
+                oled_putString(1,45,(uint8_t*)"Finished",OLED_COLOR_BLACK,OLED_COLOR_WHITE);
+            }
         }
     }
-}
