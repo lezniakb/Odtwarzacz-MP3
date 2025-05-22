@@ -33,9 +33,8 @@
 static uint8_t wavBuf[2][HALF_BUF_SIZE];
 
 /* Pinout dla LEDów (linijka diodowa) */
-#define I2C_LED_EXPANDER_ADDR 0x20  // Adres expandera I2C dla linijki diodowej
+#define I2C_LED_EXPANDER_ADDR 0x20
 
-/* Pinout dla enkodera obrotowego */
 #define ROT_A_PORT 2
 #define ROT_A_PIN 0
 #define ROT_B_PORT 2
@@ -60,16 +59,15 @@ typedef struct {
     uint32_t dataSize;
     uint16_t numChannels;
     uint32_t delay;
-    uint32_t bufferPos;           // NOWE: pozycja w buforze
-    uint32_t remainingData;       // NOWE: pozostałe dane do odtworzenia
-    bool needNewBuffer;           // NOWE: flaga potrzeby nowego bufora
+    uint32_t bufferPos;
+    uint32_t remainingData;
+    bool needNewBuffer;
     bool isPaused;
-    uint8_t activeBuf;       // 0 lub 1 — który pół-bufor jest odtwarzany
-    bool bufReady[2];        // czy wavBuf[i] jest załadowany
-    uint32_t bufPos;         // pozycja w aktywnym pół-buforze (w bajtach)
+    uint8_t activeBuf;
+    bool bufReady[2];
+    uint32_t bufPos;
 } PlayerState;
 
-// Inicjalizacja z nowymi polami
 PlayerState player = {
     .isPlaying = false,
     .currentTrack = 0,
@@ -476,11 +474,6 @@ static void display_files(void)
             oled_putString(10, 1 + (i * 8), (uint8_t*)player.fileList[i], OLED_COLOR_BLACK, OLED_COLOR_WHITE);
         }
     }
-
-    /* Wyświetlenie statusu odtwarzania */
-//    char status_str[16];
-//    sprintf(status_str, "Vol: %lu%%  %s", player.volume, player.isPlaying ? "PLAY" : "STOP");
-//    oled_putString(1, 55, (uint8_t*)status_str, OLED_COLOR_BLACK, OLED_COLOR_WHITE);
 }
 
 /* Uruchomienie kolejnego utworu */
@@ -491,15 +484,6 @@ static void next_track(void)
     player.currentTrack = (player.currentTrack + 1) % player.fileCount;
     display_files();
 }
-
-///* Uruchomienie poprzedniego utworu */
-//static void prev_track(void)
-//{
-//    if (player.fileCount == 0) return;
-//
-//    player.currentTrack = (player.currentTrack + player.fileCount - 1) % player.fileCount;
-//    display_files();
-//}
 
 /* Ustawienie głośności */
 static void set_volume(uint32_t vol)
@@ -517,9 +501,6 @@ int main (void) {
     DSTATUS stat;   /* status inicjalizacji karty SD */
     FRESULT fr;     /* wynik operacji na pliku */
     DIR dir;        /* wczytany katalog z karty SD */
-//    UINT br;        /* liczba przeczytanych bajtów */
-//    char path[64];  /* ścieżka do pliku */
-//	PINSEL_CFG_Type PinCfg;
 
     SystemInit();
     SysTick_Config(SystemCoreClock / 1000);    // 1ms ticks
