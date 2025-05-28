@@ -1,6 +1,6 @@
 #include "ff.h"
 
-DWORD get_fattime(void)
+DWORD settime(void)
 {
     /* Zwraca stały czas: 2025-05-06, 12:00:00 */
     return ((DWORD)(2025 - 1980) << 25)    /* Rok */
