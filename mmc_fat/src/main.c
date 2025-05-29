@@ -137,29 +137,10 @@ static void rotary_init(void);
 static void display_files(void);
 static void play_wav_file(const char* filename);
 static void stop_wav(void);
-static void next_track(void);
 static void set_volume(uint32_t vol);
 static void led_bar_set(uint8_t volume);
 static uint32_t getTicks(void);
 static void init_Timer(void);
-
-/*!
- *  @brief    Zwraca aktualny timestamp dla systemu plików FAT.
- *
- *  @returns  DWORD zawierający zakodowany czas: 2025-05-06, 12:00:00
- *  @side effects:
- *            Brak efektów ubocznych
- */
-DWORD get_fattime(void)
-{
-    /* Zwraca stały czas: 2025-05-06, 12:00:00 */
-    return ((DWORD)(2025U - 1980U) << 25)    /* Rok */
-        | ((DWORD)5U << 21)                /* Miesiąc */
-        | ((DWORD)6U << 16)                /* Dzień */
-        | ((DWORD)12U << 11)               /* Godzina */
-        | ((DWORD)0U << 5)                 /* Minuta */
-        | ((DWORD)0U >> 1);                /* Sekunda */
-}
 
 /*!
  *  @brief    Zwraca aktualną wartość licznika milisekund.
@@ -538,7 +519,7 @@ static void led_bar_set(uint8_t volume) {
     int i;
 
     // 0%: wszystkie LED wyłączone
-    if (volume <= 0) {
+    if (volume == 0) {
         ledOn = 0;
         ledOff = 0xFFFF;
     }
