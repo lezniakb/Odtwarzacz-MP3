@@ -1,4 +1,4 @@
-# Odtwarzacz MP3
+# Odtwarzacz WAV
 ## Overview
 [PL] Projekt został stworzony w języku C z wykorzystaniem płytki LPC 1769. Celem projektu jest podstawowa funkcjonalność odtwarzania muzyki w formacie WAV zapisanej na karcie SD. Projekt obejmuje odczytywanie plików z zewnętrznego nośnika, wyświetlanie komunikatów na ekranie OLED, oraz odtwarzanie dekodowanego dźwięku przez głośnik.<br />
 [EN] The project was developed in C using the LPC 1769 board. The goal of the project is to provide basic functionality for playing WAV music stored on an SD card. The project includes reading files from an external storage medium, displaying messages on an OLED screen, and playing the decoded sound through a speaker.
